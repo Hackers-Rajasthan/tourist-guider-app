@@ -30,6 +30,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.Reader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -206,8 +207,25 @@ public class AddEventFragment extends Fragment {
         submitButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                JSONObject postData = constructPostData();
+                final JSONObject postData = constructPostData();
                 //Post this json to server
+                Thread t = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            URL obj = new URL(Constant.SERVER_URL + "/event/add");
+                            HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+                            con.setRequestMethod("POST");
+
+                            // For POST only - START
+                            con.setDoOutput(true);
+                            OutputStream os = con.getOutputStream();
+                            os.write(postData.toString().getBytes());
+                            int responseCode = con.getResponseCode();
+                            Log.d("Login", responseCode+"");
+                        } catch (Exception e) { Log.d("Login", e.toString() );}
+                    }
+                });
                 Toast.makeText(getActivity(), "Event Added Successfully", Toast.LENGTH_SHORT).show();
                 Fragment f = new CityFragment();
                 FragmentTransaction ft = getActivity().getSupportFragmentManager().beginTransaction();
