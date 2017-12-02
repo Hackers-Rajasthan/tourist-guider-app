@@ -31,6 +31,7 @@ import org.json.JSONObject;
 public class BaseActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
+    Fragment fc;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -55,9 +56,9 @@ public class BaseActivity extends AppCompatActivity
         toolbar.setTitleTextColor(Color.BLACK);
         toolbar.setNavigationIcon(R.mipmap.ic_drawer);
 
-        Fragment f = new CityFragment();
+        fc = new CityFragment();
         FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
-        ft.replace(R.id.main_layout, f);
+        ft.replace(R.id.main_layout, fc);
         ft.commit();
     }
 
@@ -81,7 +82,13 @@ public class BaseActivity extends AppCompatActivity
             startActivity(i);
             finish();
         }
-
+        else if(id == R.id.add_event) {
+            Fragment f = new AddEventFragment();
+            FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+            ft.replace(R.id.main_layout, f);
+            ft.remove(fc);
+            ft.commit();
+        }
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
@@ -106,7 +113,7 @@ public class BaseActivity extends AppCompatActivity
                         public void onCompleted(JSONObject object, GraphResponse response) {
                             try {
                                 String name = object.getString("name");
-
+                                AddEventFragment.username = name;
 
                                 TextView profileName = (TextView)header.findViewById(R.id.profile_name);
                                 profileName.setText(name);

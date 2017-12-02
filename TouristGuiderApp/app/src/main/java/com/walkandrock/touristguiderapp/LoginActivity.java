@@ -16,6 +16,9 @@ import com.facebook.appevents.AppEventsLogger;
 import com.facebook.login.LoginManager;
 import com.facebook.login.LoginResult;
 
+import java.net.HttpURLConnection;
+import java.net.URL;
+
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -25,6 +28,7 @@ public class LoginActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        //startService(new Intent(getBaseContext(), NotificationService.class));
         //Making the activity Fullscreen
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(
@@ -47,6 +51,7 @@ public class LoginActivity extends AppCompatActivity {
                     @Override
                     public void onSuccess(LoginResult loginResult) {
                         Log.d("Login", "Success");
+                        makeGetRequest();
                         launchCity();
                         Toast.makeText(getApplicationContext(), "Login Successful", Toast.LENGTH_SHORT).show();
                     }
@@ -81,5 +86,24 @@ public class LoginActivity extends AppCompatActivity {
     private boolean isLoggedIn() {
         AccessToken accessToken = AccessToken.getCurrentAccessToken();
         return accessToken != null;
+    }
+
+    private void makeGetRequest() {
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    URL obj = new URL(Constant.SERVER_URL + "/user/" + AccessToken.getCurrentAccessToken().getUserId());
+                    HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+                    con.setRequestMethod("GET");
+                    int responseCode = con.getResponseCode();
+                    //Log.d("Login", responseCode + " is response code");
+                } catch (Exception e) { Log.d("Login", e.toString() + " in login"); }
+            }
+        });
+        t.start();
+        try {
+            t.join();
+        } catch (Exception e) {}
     }
 }

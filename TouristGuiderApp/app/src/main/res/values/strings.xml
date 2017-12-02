@@ -8,4 +8,12 @@
     <string name="navigation_drawer_close">Close navigation drawer</string>
 
     <string name="action_settings">Settings</string>
+
+    <string-array name="event_type">
+        <item>Arts</item>
+        <item>Events</item>
+        <item>Exhibition</item>
+    </string-array>
+
+    <string name="map_api_key">AIzaSyBOJTPqbr9yITbsFXU3pJraebqrGwthdBQ</string>
 </resources>

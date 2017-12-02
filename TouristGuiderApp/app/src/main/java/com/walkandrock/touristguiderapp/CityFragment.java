@@ -7,35 +7,69 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
+import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.ScrollView;
 import android.widget.Switch;
 import android.widget.TextView;
+
+import com.facebook.AccessToken;
 import com.squareup.picasso.Picasso;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
 
 public class CityFragment extends Fragment {
 
-    JSONObject cityData;
-    JSONObject userData;
+    private static JSONObject cityData;
+    private static JSONObject userData;
+    final CityFragment curr = this;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        fetchData();
+        if(cityData == null || userData==null) {
+            fetchData();
+            RelativeLayout layout = new RelativeLayout(getActivity());
+            RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(
+                    RelativeLayout.LayoutParams.MATCH_PARENT,
+                    RelativeLayout.LayoutParams.MATCH_PARENT
+            );
+            layout.setLayoutParams(layoutParams);
+            RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
+                    RelativeLayout.LayoutParams.WRAP_CONTENT,
+                    RelativeLayout.LayoutParams.WRAP_CONTENT
+            );
+            params.addRule(RelativeLayout.CENTER_IN_PARENT);
+            ProgressBar bar = new ProgressBar(getActivity());
+            bar.setIndeterminate(true);
+            bar.setLayoutParams(params);
+            layout.addView(bar);
+            return layout;
+
+        }
         ScrollView scroll = getScrollView();
 
         RelativeLayout layout = getRelativeLayout();
         scroll.addView(layout);
 
-        int n_cities = 0; try { n_cities = cityData.getJSONArray("Cities").length(); } catch (Exception e) {}
-        for(int i=0 ; i<n_cities ; i++) {
+        int n_cities = 0;
+        try {
+            n_cities = cityData.getJSONArray("Cities").length();
+        } catch (Exception e) {
+        }
+        for (int i = 0; i < n_cities; i++) {
             RelativeLayout city = getCityLayout(i);
             layout.addView(city);
 
@@ -53,6 +87,8 @@ public class CityFragment extends Fragment {
             addSwitchListener(subSwitch, i);
             city.addView(subSwitch);
         }
+
+
         return scroll;
     }
 
@@ -61,14 +97,39 @@ public class CityFragment extends Fragment {
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
-                setDummyData();
-                //Call to server and fill up cityData and userData
+                try {
+                    URL obj = new URL(Constant.SERVER_URL + "/user/" + AccessToken.getCurrentAccessToken().getUserId() + "/cities");
+                    HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+                    con.setRequestMethod("GET");
+                    int responseCode = con.getResponseCode();
+                    BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                    cityData = new JSONObject(readAll(in));
+                    AddEventFragment.cityData = cityData;
+                    Log.d("Login", responseCode + " is response code");
+                } catch (Exception e) {
+                    Log.d("Login", e.toString() + " in City List");
+                }
+
+                try {
+                    URL obj = new URL(Constant.SERVER_URL + "/user/" + AccessToken.getCurrentAccessToken().getUserId());
+                    HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+                    con.setRequestMethod("GET");
+                    int responseCode = con.getResponseCode();
+                    BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                    userData = new JSONObject(readAll(in));
+                    Log.d("Login", responseCode + " is response code");
+                } catch (Exception e) {
+                    Log.d("Login", e.toString() + " in user List");
+                }
+
+                Fragment fc = new CityFragment();
+                FragmentTransaction ft = getActivity().getSupportFragmentManager().beginTransaction();
+                ft.replace(R.id.main_layout, fc);
+                ft.remove(curr);
+                ft.commit();
             }
         });
         t.start();
-        try {
-            t.join();
-        } catch (Exception e) {}
     }
 
     //Function to create outer main ScrollView
@@ -101,17 +162,21 @@ public class CityFragment extends Fragment {
         city.setPadding(0, 0, 0, 0);
         city.setElevation(6);
         city.setBackgroundColor(Color.WHITE);
-        city.setId(i+1);
+        city.setId(i + 1);
         RelativeLayout.LayoutParams cityParams = new RelativeLayout.LayoutParams(
                 RelativeLayout.LayoutParams.MATCH_PARENT,
                 RelativeLayout.LayoutParams.MATCH_PARENT
         );
-        if(i!=0)
+        if (i != 0)
             cityParams.addRule(RelativeLayout.BELOW, i);
-        int n_cities = 0; try { n_cities = cityData.getJSONArray("Cities").length(); } catch (Exception e) {}
-        if(i==0)
+        int n_cities = 0;
+        try {
+            n_cities = cityData.getJSONArray("Cities").length();
+        } catch (Exception e) {
+        }
+        if (i == 0)
             cityParams.setMargins(20, 40, 20, 20);
-        else if(i==n_cities-1)
+        else if (i == n_cities - 1)
             cityParams.setMargins(20, 20, 20, 40);
         else
             cityParams.setMargins(20, 20, 20, 20);
@@ -128,7 +193,11 @@ public class CityFragment extends Fragment {
                 RelativeLayout.LayoutParams.WRAP_CONTENT
         );
         image.setLayoutParams(imageParams);
-        String url = ""; try { url = cityData.getJSONArray("Cities").getJSONObject(i).getString("main_photo_url"); } catch (Exception e) {}
+        String url = "";
+        try {
+            url = cityData.getJSONArray("Cities").getJSONObject(i).getString("main_photo_url");
+        } catch (Exception e) {
+        }
         Picasso.with(getActivity())
                 .load(url)
                 .into(image);
@@ -144,11 +213,16 @@ public class CityFragment extends Fragment {
         image.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Fragment f= new AttractionFragment();
-                String city_id = ""; try {city_id = cityData.getJSONArray("Cities").getJSONObject(i).getString("key");} catch (Exception e) {}
-                ((AttractionFragment)f).city_id = city_id ;
+                Fragment f = new AttractionFragment();
+                String city_id = "";
+                try {
+                    city_id = cityData.getJSONArray("Cities").getJSONObject(i).getString("key");
+                } catch (Exception e) {
+                }
+                ((AttractionFragment) f).city_id = city_id;
                 FragmentTransaction ft = getActivity().getSupportFragmentManager().beginTransaction();
                 ft.replace(R.id.main_layout, f);
+                ft.remove(curr);
                 ft.commit();
             }
         });
@@ -157,7 +231,11 @@ public class CityFragment extends Fragment {
     //Function to get TextView of city name
     private TextView getCityNameTextView(int i) {
         TextView name = new TextView(getActivity());
-        String city_name=""; try{ city_name = cityData.getJSONArray("Cities").getJSONObject(i).getString("name");} catch(Exception e) {}
+        String city_name = "";
+        try {
+            city_name = cityData.getJSONArray("Cities").getJSONObject(i).getString("name");
+        } catch (Exception e) {
+        }
         name.setText(city_name);
         name.setTextColor(Color.WHITE);
         RelativeLayout.LayoutParams nameParams = new RelativeLayout.LayoutParams(
@@ -183,17 +261,29 @@ public class CityFragment extends Fragment {
         subText.setLayoutParams(subTextParams);
         subTextParams.addRule(RelativeLayout.BELOW, 1);
         subTextParams.setMargins(20, 20, 0, 20);
-        return  subText;
+        return subText;
     }
 
     //Function to create subscription button
     private Switch getSubSwitch(int i) {
         Switch subSwitch = new Switch(getActivity());
         Boolean isSubscribed = false;
-        String city_id = ""; try {city_id = cityData.getJSONArray("Cities").getJSONObject(i).getString("key");} catch (Exception e) {}
-        JSONArray sub_list = null; try{ sub_list = userData.getJSONArray("subscription_list"); } catch (Exception e) {}
-        for(int j=0 ; j<sub_list.length() ; j++) {
-            String id = ""; try {id = sub_list.getString(j);} catch (Exception e) {}
+        String city_id = "";
+        try {
+            city_id = cityData.getJSONArray("Cities").getJSONObject(i).getString("key");
+        } catch (Exception e) {
+        }
+        JSONArray sub_list = null;
+        try {
+            sub_list = userData.getJSONArray("subscription_list");
+        } catch (Exception e) {
+        }
+        for (int j = 0; j < sub_list.length(); j++) {
+            String id = "";
+            try {
+                id = sub_list.getString(j);
+            } catch (Exception e) {
+            }
             if (id.equals(city_id))
                 isSubscribed = true;
         }
@@ -206,7 +296,7 @@ public class CityFragment extends Fragment {
         subSwitchParams.addRule(RelativeLayout.BELOW, 1);
         subSwitchParams.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
         subSwitchParams.setMargins(0, 20, 20, 20);
-        return  subSwitch;
+        return subSwitch;
     }
 
     //Function to add listener to subscription switch
@@ -217,10 +307,21 @@ public class CityFragment extends Fragment {
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        String city_id = ""; try {city_id = cityData.getJSONArray("Cities").getJSONObject(i).getString("key");} catch (Exception e) {}
-                        //Call the server with value of switch, userID and city_id to update subscription table
-                        Log.d("Login", s.isChecked()+"");
-                        Log.d("Login", city_id);
+                        String city_id = "";
+                        try {
+                            city_id = cityData.getJSONArray("Cities").getJSONObject(i).getString("key");
+                        } catch (Exception e) {
+                        }
+                        try {
+                            URL obj = new URL(Constant.SERVER_URL + "/user/" + AccessToken.getCurrentAccessToken().getUserId() + "/" + city_id + "/subscribe");
+                            HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+                            con.setRequestMethod("GET");
+                            int responseCode = con.getResponseCode();
+                            Log.d("Login", responseCode + " is response code");
+                        } catch (Exception e) {
+                            Log.d("Login", e.toString() + " in toggle");
+                        }
+
                     }
                 }).start();
             }
@@ -233,44 +334,16 @@ public class CityFragment extends Fragment {
         getActivity().setTitle("Cities");
     }
 
-    //Function to set dummy data for cities and user
-    private void setDummyData() {
+    private static String readAll(Reader rd) {
+        StringBuilder sb = null;
         try {
-            cityData = new JSONObject();
-            JSONArray cities = new JSONArray();
-            JSONObject c1 = new JSONObject();
-            JSONObject c2 = new JSONObject();
-            JSONObject c3 = new JSONObject();
-            JSONObject c4 = new JSONObject();
-            JSONObject c5 = new JSONObject();
-            c1.put("name", "Jaipur");
-            c2.put("name", "Udaipur");
-            c3.put("name", "Agra");
-            c4.put("name", "Khajuraho");
-            c5.put("name", "Shimla");
-            c1.put("key", "a");
-            c2.put("key", "b");
-            c3.put("key", "c");
-            c4.put("key", "d");
-            c5.put("key", "e");
-            c1.put("main_photo_url", "https://lonelyplanetimages.imgix.net/mastheads/GettyImages-469786746_super.jpg?auto=enhance&w=770&h=430&fit=crop");
-            c2.put("main_photo_url", "http://thrillingtravel.in/wp-content/uploads/2016/03/IMG_4466.jpg");
-            c3.put("main_photo_url", "https://953dbb3e023d8d2081dc-a6ac47d7e9972b6bed5824eadfd0b772.ssl.cf3.rackcdn.com/wp-content/uploads/2017/10/93431-004-910B716E.jpg");
-            c4.put("main_photo_url", "http://www.mptourism.com/sites/default/files/destinationstories/discover-img2-2_8.jpg");
-            c5.put("main_photo_url", "http://www.transindiatravels.com/wp-content/uploads/the-ridge-shimla.jpg");
-            cities.put(c1);
-            cities.put(c2);
-            cities.put(c3);
-            cities.put(c4);
-            cities.put(c5);
-            cityData.put("Cities", cities);
-
-            userData = new JSONObject();
-            JSONArray subList = new JSONArray();
-            subList.put("a");
-            subList.put("e");
-            userData.put("subscription_list", subList);
-
-        } catch (Exception e) {}
+            sb = new StringBuilder();
+            int cp;
+            while ((cp = rd.read()) != -1) {
+                sb.append((char) cp);
+            }
+        } catch (Exception e) {
+        }
+        return sb.toString();
     }
 }

@@ -17,14 +17,24 @@ import android.widget.RatingBar;
 import android.widget.RelativeLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+
+import com.facebook.AccessToken;
 import com.squareup.picasso.Picasso;
 import org.json.JSONObject;
+import org.w3c.dom.Attr;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 
 public class AttractionFragment extends Fragment {
 
     public String city_id;
-    JSONObject attData;
+    private JSONObject attData;
+    final AttractionFragment curr = this;
 
     @Nullable
     @Override
@@ -37,8 +47,10 @@ public class AttractionFragment extends Fragment {
 
         for(int curr_item=0, curr_ctg=0 ; curr_ctg<3 ; ) {
             if(curr_item == 0) {
-                TextView title = getCategoryTitleTextView(curr_ctg);
-                layout.addView(title);
+                if(getNoItemsCtg(curr_ctg) != 0) {
+                    TextView title = getCategoryTitleTextView(curr_ctg);
+                    layout.addView(title);
+                }
             }
             if(getNoItemsCtg(curr_ctg) == curr_item) {
                 Log.d("Login", "here:"+getNoItemsCtg(curr_ctg) );
@@ -78,8 +90,17 @@ public class AttractionFragment extends Fragment {
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
-                setDummyData();
-                //Call to server and fill up attData using cityID
+                try {
+                    URL obj = new URL(Constant.SERVER_URL + "/user/" + city_id + "/events");
+                    HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+                    con.setRequestMethod("GET");
+                    int responseCode = con.getResponseCode();
+                    BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                    attData = new JSONObject(readAll(in));
+                    Log.d("Login", responseCode + " is response code");
+                } catch (Exception e) {
+                    Log.d("Login", e.toString() + " in City List");
+                }
             }
         });
         t.start();
@@ -243,7 +264,9 @@ public class AttractionFragment extends Fragment {
         TextView desc = new TextView(getActivity());
         desc.setId(4);
         String desc_text=""; try { desc_text = getJSONObjectOfItem(ctg, item).getString("about");} catch (Exception e) {}
-        desc.setText(desc_text.substring(0, 60) + "...");
+        if(desc.length() > 59)
+            desc.setText(desc_text.substring(0, 60) + "...");
+        else desc.setText(desc_text);
         RelativeLayout.LayoutParams descParams = new RelativeLayout.LayoutParams(
                 RelativeLayout.LayoutParams.WRAP_CONTENT,
                 RelativeLayout.LayoutParams.WRAP_CONTENT
@@ -288,8 +311,11 @@ public class AttractionFragment extends Fragment {
         TextView addedBy = new TextView(getActivity());
         addedBy.setId(6);
         addedBy.setTextColor(Color.rgb(100, 100, 100));
-        String value=""; try { value = getJSONObjectOfItem(ctg, item).getString("posted_by");} catch (Exception e) {}
-        addedBy.setText("Added By: " + value);
+        String value=""; try { value = getJSONObjectOfItem(ctg, item).getString("added_by");} catch (Exception e) {}
+        if(value.length() > 10)
+            addedBy.setText("Added By: " + value.substring(0, 9));
+        else
+            addedBy.setText("Added By: " + value);
         RelativeLayout.LayoutParams addedbyParams = new RelativeLayout.LayoutParams(
                 RelativeLayout.LayoutParams.WRAP_CONTENT,
                 RelativeLayout.LayoutParams.WRAP_CONTENT
@@ -315,6 +341,7 @@ public class AttractionFragment extends Fragment {
                         Fragment f = new CityFragment();
                         FragmentTransaction ft = getActivity().getSupportFragmentManager().beginTransaction();
                         ft.replace(R.id.main_layout, f);
+                        ft.remove(curr);
                         ft.commit();
                         return true;
                     }
@@ -325,199 +352,212 @@ public class AttractionFragment extends Fragment {
         getActivity().setTitle("Magical Attractions");
         super.onViewCreated(view, savedInstanceState);
     }
-    
-    private void setDummyData() {
-        try {
-            attData = new JSONObject("{\n" +
-                    "\t\"user_id\":\"\",\n" +
-                    "\t\"arts\":\n" +
-                    "\t{\n" +
-                    "\t\t\"live\":\n" +
-                    "\t\t[\n" +
-                    "\t\t\t{\n" +
-                    "\t\t\t\t\"id\":\"id1\", //use system generated//so that you can use it for redirection_to main_page_of event\n" +
-                    "\t\t\t\t\"main_photo_url\":\"https://953dbb3e023d8d2081dc-a6ac47d7e9972b6bed5824eadfd0b772.ssl.cf3.rackcdn.com/wp-content/uploads/2017/10/93431-004-910B716E.jpg\",\n" +
-                    "\t\t\t\t\"title\":\"Check\",\n" +
-                    "\t\t\t\t\"about\":\"This is the most occupying event ever organized in jaoipur. Go and attend this event.\",\n" +
-                    "\t\t\t\t\"locationid\":\"\", //will use locationid provided by google map\n" +
-                    "\t\t\t\t\"city\":\"\",\n" +
-                    "\t\t\t\t\"distance\":0.2, //this will change according to user(in central system it will be 0)\n" +
-                    "\t\t\t\t\"seen_by\":200, //count\n" +
-                    "\t\t\t\t\"posted_on\":\"24 Nov 17\",\n" +
-                    "\t\t\t\t\"added_by\":\"Gupta ji\",\n" +
-                    "\t\t\t\t\"rating\":3.4 //rating of event\n" +
-                    "\t\t\t},\n" +
-                    "\t\t\t{\n" +
-                    "\t\t\t\t\"id\":\"id2\", //use system generated//so that you can use it for redirection_to main_page_of event\n" +
-                    "\t\t\t\t\"main_photo_url\":\"https://953dbb3e023d8d2081dc-a6ac47d7e9972b6bed5824eadfd0b772.ssl.cf3.rackcdn.com/wp-content/uploads/2017/10/93431-004-910B716E.jpg\",\n" +
-                    "\t\t\t\t\"title\":\"Check\",\n" +
-                    "\t\t\t\t\"about\":\"This is the most occupying event ever organized in jaoipur. Go and attend this event.\",\n" +
-                    "\t\t\t\t\"locationid\":\"\", //will use locationid provided by google map\n" +
-                    "\t\t\t\t\"city\":\"\",\n" +
-                    "\t\t\t\t\"distance\":0.2, //this will change according to user(in central system it will be 0)\n" +
-                    "\t\t\t\t\"seen_by\":200, //count\n" +
-                    "\t\t\t\t\"posted_on\":\"24 Nov 17\",\n" +
-                    "\t\t\t\t\"added_by\":\"Gupta ji\",\n" +
-                    "\t\t\t\t\"rating\":3.4 //rating of event\n" +
-                    "\t\t\t}\n" +
-                    "\t\t],\n" +
-                    "\t\t\"upcoming\":\n" +
-                    "\t\t[\n" +
-                    "\t\t\t{\n" +
-                    "\t\t\t\t\"id\":\"id1\", //use system generated//so that you can use it for redirection_to main_page_of event\n" +
-                    "\t\t\t\t\"main_photo_url\":\"https://953dbb3e023d8d2081dc-a6ac47d7e9972b6bed5824eadfd0b772.ssl.cf3.rackcdn.com/wp-content/uploads/2017/10/93431-004-910B716E.jpg\",\n" +
-                    "\t\t\t\t\"title\":\"Check\",\n" +
-                    "\t\t\t\t\"about\":\"This is the most occupying event ever organized in jaoipur. Go and attend this event.\",\n" +
-                    "\t\t\t\t\"locationid\":\"\", //will use locationid provided by google map\n" +
-                    "\t\t\t\t\"city\":\"\",\n" +
-                    "\t\t\t\t\"distance\":0.2, //this will change according to user(in central system it will be 0)\n" +
-                    "\t\t\t\t\"seen_by\":200, //count\n" +
-                    "\t\t\t\t\"posted_on\":\"24 Nov 17\",\n" +
-                    "\t\t\t\t\"added_by\":\"Gupta ji\",\n" +
-                    "\t\t\t\t\"rating\":3.4, //rating of event\n" +
-                    "                \"start_time\": \"24 Dec 8:80PM\",\n" +
-                    "                \"end_time\": \"24 Dec 9:00PM\"\n" +
-                    "\t\t\t},\n" +
-                    "            {\n" +
-                    "\t\t\t\t\"id\":\"id1\", //use system generated//so that you can use it for redirection_to main_page_of event\n" +
-                    "\t\t\t\t\"main_photo_url\":\"https://953dbb3e023d8d2081dc-a6ac47d7e9972b6bed5824eadfd0b772.ssl.cf3.rackcdn.com/wp-content/uploads/2017/10/93431-004-910B716E.jpg\",\n" +
-                    "\t\t\t\t\"title\":\"Check\",\n" +
-                    "\t\t\t\t\"about\":\"This is the most occupying event ever organized in jaoipur. Go and attend this event.\",\n" +
-                    "\t\t\t\t\"locationid\":\"\", //will use locationid provided by google map\n" +
-                    "\t\t\t\t\"city\":\"\",\n" +
-                    "\t\t\t\t\"distance\":0.2, //this will change according to user(in central system it will be 0)\n" +
-                    "\t\t\t\t\"seen_by\":200, //count\n" +
-                    "\t\t\t\t\"posted_on\":\"24 Nov 17\",\n" +
-                    "\t\t\t\t\"added_by\":\"Gupta ji\",\n" +
-                    "\t\t\t\t\"rating\":3.4, //rating of event\n" +
-                    "                \"start_time\": \"24 Dec 8:80PM\",\n" +
-                    "                \"end_time\": \"24 Dec 9:00PM\"\n" +
-                    "\t\t\t}\n" +
-                    "\t\t]\n" +
-                    "\t},\n" +
-                    "\t\"events\":\n" +
-                    "\t{\n" +
-                    "\t\t\"live\":[{\n" +
-                    "\t\t\t\t\"id\":\"id1\", //use system generated//so that you can use it for redirection_to main_page_of event\n" +
-                    "\t\t\t\t\"main_photo_url\":\"https://953dbb3e023d8d2081dc-a6ac47d7e9972b6bed5824eadfd0b772.ssl.cf3.rackcdn.com/wp-content/uploads/2017/10/93431-004-910B716E.jpg\",\n" +
-                    "\t\t\t\t\"title\":\"Check\",\n" +
-                    "\t\t\t\t\"about\":\"This is the most occupying event ever organized in jaoipur. Go and attend this event.\",\n" +
-                    "\t\t\t\t\"locationid\":\"\", //will use locationid provided by google map\n" +
-                    "\t\t\t\t\"city\":\"\",\n" +
-                    "\t\t\t\t\"distance\":0.2, //this will change according to user(in central system it will be 0)\n" +
-                    "\t\t\t\t\"seen_by\":200, //count\n" +
-                    "\t\t\t\t\"posted_on\":\"24 Nov 17\",\n" +
-                    "\t\t\t\t\"added_by\":\"Gupta ji\",\n" +
-                    "\t\t\t\t\"rating\":3.4 //rating of event\n" +
-                    "\t\t\t},\n" +
-                    "\t\t\t{\n" +
-                    "\t\t\t\t\"id\":\"id2\", //use system generated//so that you can use it for redirection_to main_page_of event\n" +
-                    "\t\t\t\t\"main_photo_url\":\"https://953dbb3e023d8d2081dc-a6ac47d7e9972b6bed5824eadfd0b772.ssl.cf3.rackcdn.com/wp-content/uploads/2017/10/93431-004-910B716E.jpg\",\n" +
-                    "\t\t\t\t\"title\":\"Check\",\n" +
-                    "\t\t\t\t\"about\":\"This is the most occupying event ever organized in jaoipur. Go and attend this event.\",\n" +
-                    "\t\t\t\t\"locationid\":\"\", //will use locationid provided by google map\n" +
-                    "\t\t\t\t\"city\":\"\",\n" +
-                    "\t\t\t\t\"distance\":0.2, //this will change according to user(in central system it will be 0)\n" +
-                    "\t\t\t\t\"seen_by\":200, //count\n" +
-                    "\t\t\t\t\"posted_on\":\"24 Nov 17\",\n" +
-                    "\t\t\t\t\"added_by\":\"Gupta ji\",\n" +
-                    "\t\t\t\t\"rating\":3.4 //rating of event\n" +
-                    "\t\t\t}],\n" +
-                    "\t\t\"upcoming\":[\n" +
-                    "            {\n" +
-                    "\t\t\t\t\"id\":\"id1\", //use system generated//so that you can use it for redirection_to main_page_of event\n" +
-                    "\t\t\t\t\"main_photo_url\":\"https://953dbb3e023d8d2081dc-a6ac47d7e9972b6bed5824eadfd0b772.ssl.cf3.rackcdn.com/wp-content/uploads/2017/10/93431-004-910B716E.jpg\",\n" +
-                    "\t\t\t\t\"title\":\"Check\",\n" +
-                    "\t\t\t\t\"about\":\"This is the most occupying event ever organized in jaoipur. Go and attend this event.\",\n" +
-                    "\t\t\t\t\"locationid\":\"\", //will use locationid provided by google map\n" +
-                    "\t\t\t\t\"city\":\"\",\n" +
-                    "\t\t\t\t\"distance\":0.2, //this will change according to user(in central system it will be 0)\n" +
-                    "\t\t\t\t\"seen_by\":200, //count\n" +
-                    "\t\t\t\t\"posted_on\":\"24 Nov 17\",\n" +
-                    "\t\t\t\t\"added_by\":\"Gupta ji\",\n" +
-                    "\t\t\t\t\"rating\":3.4, //rating of event\n" +
-                    "                \"start_time\": \"24 Dec 8:80PM\",\n" +
-                    "                \"end_time\": \"24 Dec 9:00PM\"\n" +
-                    "\t\t\t},\n" +
-                    "            {\n" +
-                    "\t\t\t\t\"id\":\"id1\", //use system generated//so that you can use it for redirection_to main_page_of event\n" +
-                    "\t\t\t\t\"main_photo_url\":\"https://953dbb3e023d8d2081dc-a6ac47d7e9972b6bed5824eadfd0b772.ssl.cf3.rackcdn.com/wp-content/uploads/2017/10/93431-004-910B716E.jpg\",\n" +
-                    "\t\t\t\t\"title\":\"Check\",\n" +
-                    "\t\t\t\t\"about\":\"This is the most occupying event ever organized in jaoipur. Go and attend this event.\",\n" +
-                    "\t\t\t\t\"locationid\":\"\", //will use locationid provided by google map\n" +
-                    "\t\t\t\t\"city\":\"\",\n" +
-                    "\t\t\t\t\"distance\":0.2, //this will change according to user(in central system it will be 0)\n" +
-                    "\t\t\t\t\"seen_by\":200, //count\n" +
-                    "\t\t\t\t\"posted_on\":\"24 Nov 17\",\n" +
-                    "\t\t\t\t\"added_by\":\"Gupta ji\",\n" +
-                    "\t\t\t\t\"rating\":3.4, //rating of event\n" +
-                    "                \"start_time\": \"24 Dec 8:80PM\",\n" +
-                    "                \"end_time\": \"24 Dec 9:00PM\"\n" +
-                    "\t\t\t}]\n" +
-                    "\t},\n" +
-                    "\t\"exhibitions\":\n" +
-                    "\t{\n" +
-                    "\t\t\"live\":[{\n" +
-                    "\t\t\t\t\"id\":\"id1\", //use system generated//so that you can use it for redirection_to main_page_of event\n" +
-                    "\t\t\t\t\"main_photo_url\":\"https://953dbb3e023d8d2081dc-a6ac47d7e9972b6bed5824eadfd0b772.ssl.cf3.rackcdn.com/wp-content/uploads/2017/10/93431-004-910B716E.jpg\",\n" +
-                    "\t\t\t\t\"title\":\"Check\",\n" +
-                    "\t\t\t\t\"about\":\"This is the most occupying event ever organized in jaoipur. Go and attend this event.\",\n" +
-                    "\t\t\t\t\"locationid\":\"\", //will use locationid provided by google map\n" +
-                    "\t\t\t\t\"city\":\"\",\n" +
-                    "\t\t\t\t\"distance\":0.2, //this will change according to user(in central system it will be 0)\n" +
-                    "\t\t\t\t\"seen_by\":200, //count\n" +
-                    "\t\t\t\t\"posted_on\":\"24 Nov 17\",\n" +
-                    "\t\t\t\t\"added_by\":\"Gupta ji\",\n" +
-                    "\t\t\t\t\"rating\":3.4 //rating of event\n" +
-                    "\t\t\t},\n" +
-                    "\t\t\t{\n" +
-                    "\t\t\t\t\"id\":\"id2\", //use system generated//so that you can use it for redirection_to main_page_of event\n" +
-                    "\t\t\t\t\"main_photo_url\":\"https://953dbb3e023d8d2081dc-a6ac47d7e9972b6bed5824eadfd0b772.ssl.cf3.rackcdn.com/wp-content/uploads/2017/10/93431-004-910B716E.jpg\",\n" +
-                    "\t\t\t\t\"title\":\"Check\",\n" +
-                    "\t\t\t\t\"about\":\"This is the most occupying event ever organized in jaoipur. Go and attend this event.\",\n" +
-                    "\t\t\t\t\"locationid\":\"\", //will use locationid provided by google map\n" +
-                    "\t\t\t\t\"city\":\"\",\n" +
-                    "\t\t\t\t\"distance\":0.2, //this will change according to user(in central system it will be 0)\n" +
-                    "\t\t\t\t\"seen_by\":200, //count\n" +
-                    "\t\t\t\t\"posted_on\":\"24 Nov 17\",\n" +
-                    "\t\t\t\t\"added_by\":\"Gupta ji\",\n" +
-                    "\t\t\t\t\"rating\":3.4 //rating of event\n" +
-                    "\t\t\t}],\n" +
-                    "\t\t\"upcoming\":[{\n" +
-                    "\t\t\t\t\"id\":\"id1\", //use system generated//so that you can use it for redirection_to main_page_of event\n" +
-                    "\t\t\t\t\"main_photo_url\":\"https://953dbb3e023d8d2081dc-a6ac47d7e9972b6bed5824eadfd0b772.ssl.cf3.rackcdn.com/wp-content/uploads/2017/10/93431-004-910B716E.jpg\",\n" +
-                    "\t\t\t\t\"title\":\"Check\",\n" +
-                    "\t\t\t\t\"about\":\"This is the most occupying event ever organized in jaoipur. Go and attend this event.\",\n" +
-                    "\t\t\t\t\"locationid\":\"\", //will use locationid provided by google map\n" +
-                    "\t\t\t\t\"city\":\"\",\n" +
-                    "\t\t\t\t\"distance\":0.2, //this will change according to user(in central system it will be 0)\n" +
-                    "\t\t\t\t\"seen_by\":200, //count\n" +
-                    "\t\t\t\t\"posted_on\":\"24 Nov 17\",\n" +
-                    "\t\t\t\t\"added_by\":\"Gupta ji\",\n" +
-                    "\t\t\t\t\"rating\":3.4, //rating of event\n" +
-                    "                \"start_time\": \"24 Dec 8:80PM\",\n" +
-                    "                \"end_time\": \"24 Dec 9:00PM\"\n" +
-                    "\t\t\t},\n" +
-                    "            {\n" +
-                    "\t\t\t\t\"id\":\"id1\", //use system generated//so that you can use it for redirection_to main_page_of event\n" +
-                    "\t\t\t\t\"main_photo_url\":\"https://953dbb3e023d8d2081dc-a6ac47d7e9972b6bed5824eadfd0b772.ssl.cf3.rackcdn.com/wp-content/uploads/2017/10/93431-004-910B716E.jpg\",\n" +
-                    "\t\t\t\t\"title\":\"Check\",\n" +
-                    "\t\t\t\t\"about\":\"This is the most occupying event ever organized in jaoipur. Go and attend this event.\",\n" +
-                    "\t\t\t\t\"locationid\":\"\", //will use locationid provided by google map\n" +
-                    "\t\t\t\t\"city\":\"\",\n" +
-                    "\t\t\t\t\"distance\":0.2, //this will change according to user(in central system it will be 0)\n" +
-                    "\t\t\t\t\"seen_by\":200, //count\n" +
-                    "\t\t\t\t\"posted_on\":\"24 Nov 17\",\n" +
-                    "\t\t\t\t\"added_by\":\"Gupta ji\",\n" +
-                    "\t\t\t\t\"rating\":3.4, //rating of event\n" +
-                    "                \"start_time\": \"24 Dec 8:80PM\",\n" +
-                    "                \"end_time\": \"24 Dec 9:00PM\"\n" +
-                    "\t\t\t}]\n" +
-                    "\t}\n" +
-                    "}");
-            Log.d("Login", attData.getJSONObject("arts").getJSONArray("live").length()+"");
-        } catch (Exception e) {
-            Log.d("Login", "occupy");}
 
+    private static String readAll(Reader rd) {
+        StringBuilder sb = null;
+        try {
+            sb = new StringBuilder();
+            int cp;
+            while ((cp = rd.read()) != -1) {
+                sb.append((char) cp);
+            }
+        } catch (Exception e) {
+        }
+        return sb.toString();
+    }
+
+        private void setDummyData() {
+            try {
+                attData = new JSONObject("{\n" +
+                        "\t\"user_id\":\"\",\n" +
+                        "\t\"arts\":\n" +
+                        "\t{\n" +
+                        "\t\t\"live\":\n" +
+                        "\t\t[\n" +
+                        "\t\t\t{\n" +
+                        "\t\t\t\t\"id\":\"id1\", //use system generated//so that you can use it for redirection_to main_page_of event\n" +
+                        "\t\t\t\t\"main_photo_url\":\"https://953dbb3e023d8d2081dc-a6ac47d7e9972b6bed5824eadfd0b772.ssl.cf3.rackcdn.com/wp-content/uploads/2017/10/93431-004-910B716E.jpg\",\n" +
+                        "\t\t\t\t\"title\":\"Check\",\n" +
+                        "\t\t\t\t\"about\":\"This is the most occupying event ever organized in jaoipur. Go and attend this event.\",\n" +
+                        "\t\t\t\t\"locationid\":\"\", //will use locationid provided by google map\n" +
+                        "\t\t\t\t\"city\":\"\",\n" +
+                        "\t\t\t\t\"distance\":0.2, //this will change according to user(in central system it will be 0)\n" +
+                        "\t\t\t\t\"seen_by\":200, //count\n" +
+                        "\t\t\t\t\"posted_on\":\"24 Nov 17\",\n" +
+                        "\t\t\t\t\"added_by\":\"Gupta ji\",\n" +
+                        "\t\t\t\t\"rating\":3.4 //rating of event\n" +
+                        "\t\t\t},\n" +
+                        "\t\t\t{\n" +
+                        "\t\t\t\t\"id\":\"id2\", //use system generated//so that you can use it for redirection_to main_page_of event\n" +
+                        "\t\t\t\t\"main_photo_url\":\"https://953dbb3e023d8d2081dc-a6ac47d7e9972b6bed5824eadfd0b772.ssl.cf3.rackcdn.com/wp-content/uploads/2017/10/93431-004-910B716E.jpg\",\n" +
+                        "\t\t\t\t\"title\":\"Check\",\n" +
+                        "\t\t\t\t\"about\":\"This is the most occupying event ever organized in jaoipur. Go and attend this event.\",\n" +
+                        "\t\t\t\t\"locationid\":\"\", //will use locationid provided by google map\n" +
+                        "\t\t\t\t\"city\":\"\",\n" +
+                        "\t\t\t\t\"distance\":0.2, //this will change according to user(in central system it will be 0)\n" +
+                        "\t\t\t\t\"seen_by\":200, //count\n" +
+                        "\t\t\t\t\"posted_on\":\"24 Nov 17\",\n" +
+                        "\t\t\t\t\"added_by\":\"Gupta ji\",\n" +
+                        "\t\t\t\t\"rating\":3.4 //rating of event\n" +
+                        "\t\t\t}\n" +
+                        "\t\t],\n" +
+                        "\t\t\"upcoming\":\n" +
+                        "\t\t[\n" +
+                        "\t\t\t{\n" +
+                        "\t\t\t\t\"id\":\"id1\", //use system generated//so that you can use it for redirection_to main_page_of event\n" +
+                        "\t\t\t\t\"main_photo_url\":\"https://953dbb3e023d8d2081dc-a6ac47d7e9972b6bed5824eadfd0b772.ssl.cf3.rackcdn.com/wp-content/uploads/2017/10/93431-004-910B716E.jpg\",\n" +
+                        "\t\t\t\t\"title\":\"Check\",\n" +
+                        "\t\t\t\t\"about\":\"This is the most occupying event ever organized in jaoipur. Go and attend this event.\",\n" +
+                        "\t\t\t\t\"locationid\":\"\", //will use locationid provided by google map\n" +
+                        "\t\t\t\t\"city\":\"\",\n" +
+                        "\t\t\t\t\"distance\":0.2, //this will change according to user(in central system it will be 0)\n" +
+                        "\t\t\t\t\"seen_by\":200, //count\n" +
+                        "\t\t\t\t\"posted_on\":\"24 Nov 17\",\n" +
+                        "\t\t\t\t\"added_by\":\"Gupta ji\",\n" +
+                        "\t\t\t\t\"rating\":3.4, //rating of event\n" +
+                        "                \"start_time\": \"24 Dec 8:80PM\",\n" +
+                        "                \"end_time\": \"24 Dec 9:00PM\"\n" +
+                        "\t\t\t},\n" +
+                        "            {\n" +
+                        "\t\t\t\t\"id\":\"id1\", //use system generated//so that you can use it for redirection_to main_page_of event\n" +
+                        "\t\t\t\t\"main_photo_url\":\"https://953dbb3e023d8d2081dc-a6ac47d7e9972b6bed5824eadfd0b772.ssl.cf3.rackcdn.com/wp-content/uploads/2017/10/93431-004-910B716E.jpg\",\n" +
+                        "\t\t\t\t\"title\":\"Check\",\n" +
+                        "\t\t\t\t\"about\":\"This is the most occupying event ever organized in jaoipur. Go and attend this event.\",\n" +
+                        "\t\t\t\t\"locationid\":\"\", //will use locationid provided by google map\n" +
+                        "\t\t\t\t\"city\":\"\",\n" +
+                        "\t\t\t\t\"distance\":0.2, //this will change according to user(in central system it will be 0)\n" +
+                        "\t\t\t\t\"seen_by\":200, //count\n" +
+                        "\t\t\t\t\"posted_on\":\"24 Nov 17\",\n" +
+                        "\t\t\t\t\"added_by\":\"Gupta ji\",\n" +
+                        "\t\t\t\t\"rating\":3.4, //rating of event\n" +
+                        "                \"start_time\": \"24 Dec 8:80PM\",\n" +
+                        "                \"end_time\": \"24 Dec 9:00PM\"\n" +
+                        "\t\t\t}\n" +
+                        "\t\t]\n" +
+                        "\t},\n" +
+                        "\t\"events\":\n" +
+                        "\t{\n" +
+                        "\t\t\"live\":[{\n" +
+                        "\t\t\t\t\"id\":\"id1\", //use system generated//so that you can use it for redirection_to main_page_of event\n" +
+                        "\t\t\t\t\"main_photo_url\":\"https://953dbb3e023d8d2081dc-a6ac47d7e9972b6bed5824eadfd0b772.ssl.cf3.rackcdn.com/wp-content/uploads/2017/10/93431-004-910B716E.jpg\",\n" +
+                        "\t\t\t\t\"title\":\"Check\",\n" +
+                        "\t\t\t\t\"about\":\"This is the most occupying event ever organized in jaoipur. Go and attend this event.\",\n" +
+                        "\t\t\t\t\"locationid\":\"\", //will use locationid provided by google map\n" +
+                        "\t\t\t\t\"city\":\"\",\n" +
+                        "\t\t\t\t\"distance\":0.2, //this will change according to user(in central system it will be 0)\n" +
+                        "\t\t\t\t\"seen_by\":200, //count\n" +
+                        "\t\t\t\t\"posted_on\":\"24 Nov 17\",\n" +
+                        "\t\t\t\t\"added_by\":\"Gupta ji\",\n" +
+                        "\t\t\t\t\"rating\":3.4 //rating of event\n" +
+                        "\t\t\t},\n" +
+                        "\t\t\t{\n" +
+                        "\t\t\t\t\"id\":\"id2\", //use system generated//so that you can use it for redirection_to main_page_of event\n" +
+                        "\t\t\t\t\"main_photo_url\":\"https://953dbb3e023d8d2081dc-a6ac47d7e9972b6bed5824eadfd0b772.ssl.cf3.rackcdn.com/wp-content/uploads/2017/10/93431-004-910B716E.jpg\",\n" +
+                        "\t\t\t\t\"title\":\"Check\",\n" +
+                        "\t\t\t\t\"about\":\"This is the most occupying event ever organized in jaoipur. Go and attend this event.\",\n" +
+                        "\t\t\t\t\"locationid\":\"\", //will use locationid provided by google map\n" +
+                        "\t\t\t\t\"city\":\"\",\n" +
+                        "\t\t\t\t\"distance\":0.2, //this will change according to user(in central system it will be 0)\n" +
+                        "\t\t\t\t\"seen_by\":200, //count\n" +
+                        "\t\t\t\t\"posted_on\":\"24 Nov 17\",\n" +
+                        "\t\t\t\t\"added_by\":\"Gupta ji\",\n" +
+                        "\t\t\t\t\"rating\":3.4 //rating of event\n" +
+                        "\t\t\t}],\n" +
+                        "\t\t\"upcoming\":[\n" +
+                        "            {\n" +
+                        "\t\t\t\t\"id\":\"id1\", //use system generated//so that you can use it for redirection_to main_page_of event\n" +
+                        "\t\t\t\t\"main_photo_url\":\"https://953dbb3e023d8d2081dc-a6ac47d7e9972b6bed5824eadfd0b772.ssl.cf3.rackcdn.com/wp-content/uploads/2017/10/93431-004-910B716E.jpg\",\n" +
+                        "\t\t\t\t\"title\":\"Check\",\n" +
+                        "\t\t\t\t\"about\":\"This is the most occupying event ever organized in jaoipur. Go and attend this event.\",\n" +
+                        "\t\t\t\t\"locationid\":\"\", //will use locationid provided by google map\n" +
+                        "\t\t\t\t\"city\":\"\",\n" +
+                        "\t\t\t\t\"distance\":0.2, //this will change according to user(in central system it will be 0)\n" +
+                        "\t\t\t\t\"seen_by\":200, //count\n" +
+                        "\t\t\t\t\"posted_on\":\"24 Nov 17\",\n" +
+                        "\t\t\t\t\"added_by\":\"Gupta ji\",\n" +
+                        "\t\t\t\t\"rating\":3.4, //rating of event\n" +
+                        "                \"start_time\": \"24 Dec 8:80PM\",\n" +
+                        "                \"end_time\": \"24 Dec 9:00PM\"\n" +
+                        "\t\t\t},\n" +
+                        "            {\n" +
+                        "\t\t\t\t\"id\":\"id1\", //use system generated//so that you can use it for redirection_to main_page_of event\n" +
+                        "\t\t\t\t\"main_photo_url\":\"https://953dbb3e023d8d2081dc-a6ac47d7e9972b6bed5824eadfd0b772.ssl.cf3.rackcdn.com/wp-content/uploads/2017/10/93431-004-910B716E.jpg\",\n" +
+                        "\t\t\t\t\"title\":\"Check\",\n" +
+                        "\t\t\t\t\"about\":\"This is the most occupying event ever organized in jaoipur. Go and attend this event.\",\n" +
+                        "\t\t\t\t\"locationid\":\"\", //will use locationid provided by google map\n" +
+                        "\t\t\t\t\"city\":\"\",\n" +
+                        "\t\t\t\t\"distance\":0.2, //this will change according to user(in central system it will be 0)\n" +
+                        "\t\t\t\t\"seen_by\":200, //count\n" +
+                        "\t\t\t\t\"posted_on\":\"24 Nov 17\",\n" +
+                        "\t\t\t\t\"added_by\":\"Gupta ji\",\n" +
+                        "\t\t\t\t\"rating\":3.4, //rating of event\n" +
+                        "                \"start_time\": \"24 Dec 8:80PM\",\n" +
+                        "                \"end_time\": \"24 Dec 9:00PM\"\n" +
+                        "\t\t\t}]\n" +
+                        "\t},\n" +
+                        "\t\"exhibitions\":\n" +
+                        "\t{\n" +
+                        "\t\t\"live\":[{\n" +
+                        "\t\t\t\t\"id\":\"id1\", //use system generated//so that you can use it for redirection_to main_page_of event\n" +
+                        "\t\t\t\t\"main_photo_url\":\"https://953dbb3e023d8d2081dc-a6ac47d7e9972b6bed5824eadfd0b772.ssl.cf3.rackcdn.com/wp-content/uploads/2017/10/93431-004-910B716E.jpg\",\n" +
+                        "\t\t\t\t\"title\":\"Check\",\n" +
+                        "\t\t\t\t\"about\":\"This is the most occupying event ever organized in jaoipur. Go and attend this event.\",\n" +
+                        "\t\t\t\t\"locationid\":\"\", //will use locationid provided by google map\n" +
+                        "\t\t\t\t\"city\":\"\",\n" +
+                        "\t\t\t\t\"distance\":0.2, //this will change according to user(in central system it will be 0)\n" +
+                        "\t\t\t\t\"seen_by\":200, //count\n" +
+                        "\t\t\t\t\"posted_on\":\"24 Nov 17\",\n" +
+                        "\t\t\t\t\"added_by\":\"Gupta ji\",\n" +
+                        "\t\t\t\t\"rating\":3.4 //rating of event\n" +
+                        "\t\t\t},\n" +
+                        "\t\t\t{\n" +
+                        "\t\t\t\t\"id\":\"id2\", //use system generated//so that you can use it for redirection_to main_page_of event\n" +
+                        "\t\t\t\t\"main_photo_url\":\"https://953dbb3e023d8d2081dc-a6ac47d7e9972b6bed5824eadfd0b772.ssl.cf3.rackcdn.com/wp-content/uploads/2017/10/93431-004-910B716E.jpg\",\n" +
+                        "\t\t\t\t\"title\":\"Check\",\n" +
+                        "\t\t\t\t\"about\":\"This is the most occupying event ever organized in jaoipur. Go and attend this event.\",\n" +
+                        "\t\t\t\t\"locationid\":\"\", //will use locationid provided by google map\n" +
+                        "\t\t\t\t\"city\":\"\",\n" +
+                        "\t\t\t\t\"distance\":0.2, //this will change according to user(in central system it will be 0)\n" +
+                        "\t\t\t\t\"seen_by\":200, //count\n" +
+                        "\t\t\t\t\"posted_on\":\"24 Nov 17\",\n" +
+                        "\t\t\t\t\"added_by\":\"Gupta ji\",\n" +
+                        "\t\t\t\t\"rating\":3.4 //rating of event\n" +
+                        "\t\t\t}],\n" +
+                        "\t\t\"upcoming\":[{\n" +
+                        "\t\t\t\t\"id\":\"id1\", //use system generated//so that you can use it for redirection_to main_page_of event\n" +
+                        "\t\t\t\t\"main_photo_url\":\"https://953dbb3e023d8d2081dc-a6ac47d7e9972b6bed5824eadfd0b772.ssl.cf3.rackcdn.com/wp-content/uploads/2017/10/93431-004-910B716E.jpg\",\n" +
+                        "\t\t\t\t\"title\":\"Check\",\n" +
+                        "\t\t\t\t\"about\":\"This is the most occupying event ever organized in jaoipur. Go and attend this event.\",\n" +
+                        "\t\t\t\t\"locationid\":\"\", //will use locationid provided by google map\n" +
+                        "\t\t\t\t\"city\":\"\",\n" +
+                        "\t\t\t\t\"distance\":0.2, //this will change according to user(in central system it will be 0)\n" +
+                        "\t\t\t\t\"seen_by\":200, //count\n" +
+                        "\t\t\t\t\"posted_on\":\"24 Nov 17\",\n" +
+                        "\t\t\t\t\"added_by\":\"Gupta ji\",\n" +
+                        "\t\t\t\t\"rating\":3.4, //rating of event\n" +
+                        "                \"start_time\": \"24 Dec 8:80PM\",\n" +
+                        "                \"end_time\": \"24 Dec 9:00PM\"\n" +
+                        "\t\t\t},\n" +
+                        "            {\n" +
+                        "\t\t\t\t\"id\":\"id1\", //use system generated//so that you can use it for redirection_to main_page_of event\n" +
+                        "\t\t\t\t\"main_photo_url\":\"https://953dbb3e023d8d2081dc-a6ac47d7e9972b6bed5824eadfd0b772.ssl.cf3.rackcdn.com/wp-content/uploads/2017/10/93431-004-910B716E.jpg\",\n" +
+                        "\t\t\t\t\"title\":\"Check\",\n" +
+                        "\t\t\t\t\"about\":\"This is the most occupying event ever organized in jaoipur. Go and attend this event.\",\n" +
+                        "\t\t\t\t\"locationid\":\"\", //will use locationid provided by google map\n" +
+                        "\t\t\t\t\"city\":\"\",\n" +
+                        "\t\t\t\t\"distance\":0.2, //this will change according to user(in central system it will be 0)\n" +
+                        "\t\t\t\t\"seen_by\":200, //count\n" +
+                        "\t\t\t\t\"posted_on\":\"24 Nov 17\",\n" +
+                        "\t\t\t\t\"added_by\":\"Gupta ji\",\n" +
+                        "\t\t\t\t\"rating\":3.4, //rating of event\n" +
+                        "                \"start_time\": \"24 Dec 8:80PM\",\n" +
+                        "                \"end_time\": \"24 Dec 9:00PM\"\n" +
+                        "\t\t\t}]\n" +
+                        "\t}\n" +
+                        "}");
+                Log.d("Login", attData.getJSONObject("arts").getJSONArray("live").length()+"");
+            } catch (Exception e) {
+                Log.d("Login", "occupy");}
     }
 }
+
