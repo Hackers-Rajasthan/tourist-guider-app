@@ -40,7 +40,7 @@ public class CityFragment extends Fragment {
             layout.addView(city);
 
             ImageButton image = getImageButton(i);
-            //addCityListener(image, i);
+            addCityListener(image, i);
             city.addView(image);
 
             TextView name = getCityNameTextView(i);
@@ -139,7 +139,20 @@ public class CityFragment extends Fragment {
         return image;
     }
 
-
+    //Function to add event listener to the image of city
+    private void addCityListener(ImageButton image, final int i) {
+        image.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Fragment f= new AttractionFragment();
+                String city_id = ""; try {city_id = cityData.getJSONArray("Cities").getJSONObject(i).getString("key");} catch (Exception e) {}
+                ((AttractionFragment)f).city_id = city_id ;
+                FragmentTransaction ft = getActivity().getSupportFragmentManager().beginTransaction();
+                ft.replace(R.id.main_layout, f);
+                ft.commit();
+            }
+        });
+    }
 
     //Function to get TextView of city name
     private TextView getCityNameTextView(int i) {
