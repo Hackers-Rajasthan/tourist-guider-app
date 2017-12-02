@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/add_event"
+            android:icon="@mipmap/ic_add"
+            android:title="Add Event" />
+        <item
+            android:id="@+id/write_blog"
+            android:icon="@mipmap/ic_write"
+            android:title="Write Blog" />
+        <item
+            android:id="@+id/my_blogs"
+            android:icon="@mipmap/ic_blogs"
+            android:title="My Blogs" />
+    </group>
+    <item android:title="Account">
+        <menu>
+            <item
+                android:id="@+id/logout"
+                android:icon="@mipmap/ic_logout"
+                android:title="Logout" />
+        </menu>
+    </item>
+
+</menu>
