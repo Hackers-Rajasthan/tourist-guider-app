@@ -54,6 +54,11 @@ public class BaseActivity extends AppCompatActivity
         getSupportActionBar().setBackgroundDrawable(new ColorDrawable(Color.WHITE));
         toolbar.setTitleTextColor(Color.BLACK);
         toolbar.setNavigationIcon(R.mipmap.ic_drawer);
+
+        Fragment f = new CityFragment();
+        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+        ft.replace(R.id.main_layout, f);
+        ft.commit();
     }
 
     @Override
